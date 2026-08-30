@@ -452,7 +452,7 @@ export const THEMES: Theme[] = [
       "--last": "rgba(0,230,118,0.3)",
       "--check": "#ff3b3b",
       "--piece-light": "#eafff4",
-      "--piece-dark": "#00e676",
+      "--piece-dark": "#06331e",
       "--piece-stroke": "rgba(0,0,0,0.55)",
       "--font-display": "'Rajdhani', sans-serif",
       "--board-shadow": "0 0 60px rgba(0,230,118,0.25)",

@@ -6,6 +6,7 @@ import Board from "./Board";
 import { THEMES, getTheme, type Theme } from "@/lib/themes";
 import { MODELS, SKILLS, DEFAULT_MODEL, modelLabel, type Skill } from "@/lib/models";
 import { requestAiMove } from "@/lib/ai";
+import { charFor } from "@/lib/pieces";
 import { sfx } from "@/lib/sound";
 import {
   getUserId,
@@ -84,6 +85,7 @@ export default function GameApp() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hint, setHint] = useState<{ from: string; to: string; san: string } | null>(null);
   const [hintBusy, setHintBusy] = useState(false);
+  const [boom, setBoom] = useState<{ square: string; char: string; tick: number } | null>(null);
   const [clocks, setClocks] = useState<{ w: number; b: number }>({ w: Infinity, b: Infinity });
   const [running, setRunning] = useState(false);
   const [over, setOver] = useState<{ result: Color | "draw"; reason: string } | null>(null);
@@ -105,6 +107,8 @@ export default function GameApp() {
   soundRef.current = sound;
   const tcRef = useRef(tc);
   tcRef.current = tc;
+  const themeIdRef = useRef(themeId);
+  themeIdRef.current = themeId;
 
   // ── mount: load persisted identity + prefs, then start playing right away ─
   useEffect(() => {
@@ -114,12 +118,23 @@ export default function GameApp() {
     setName(savedName);
     setStats(getStats());
     const p = getPrefs();
-    setThemeId(p.themeId || "classic");
+    // shareable skin links: ?skin=skibidi beats the saved preference
+    const urlSkin = new URLSearchParams(window.location.search).get("skin");
+    const initialThemeId =
+      urlSkin && THEMES.some((t) => t.id === urlSkin) ? urlSkin : p.themeId || "classic";
+    setThemeId(initialThemeId);
     setSound(p.sound);
     setByoKey(p.byoKey);
     setByoBaseUrl(p.byoBaseUrl);
     // no setup screen — drop the user straight onto a live board
-    beginGame({ mode: "ai", humanColor: "white", aiModel: DEFAULT_MODEL, name: savedName, tc: TIME_CONTROLS[3] });
+    beginGame({
+      mode: "ai",
+      humanColor: "white",
+      aiModel: DEFAULT_MODEL,
+      name: savedName,
+      tc: TIME_CONTROLS[3],
+      themeName: getTheme(initialThemeId).name,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -246,6 +261,15 @@ export default function GameApp() {
       setSelected(null);
       setTargets(new Set());
       setHint(null);
+      if (result.captured) {
+        // burst shows the victim in the current skin's piece set
+        setBoom({
+          square: result.to,
+          char: charFor(themeIdRef.current, result.color === "w" ? "b" : "w", result.captured),
+          tick: c.history().length,
+        });
+        setTimeout(() => setBoom((b) => (b && b.tick === c.history().length ? null : b)), 650);
+      }
       if (soundRef.current) {
         if (c.inCheck()) sfx.check();
         else if (result.captured) sfx.capture();
@@ -558,7 +582,9 @@ export default function GameApp() {
                   </button>
                 ))}
               </div>
-              <div className="skinname">{theme.name} · {theme.blurb}</div>
+              <div className="skinname">
+                {theme.name} · {charFor(theme.id, "w", "k")} vs {charFor(theme.id, "b", "k")} · {theme.blurb}
+              </div>
 
               <div className="label">Mode</div>
               <div className="seg">
@@ -682,12 +708,14 @@ export default function GameApp() {
               <PlayerStrip
                 cfg={players[topColor === "white" ? "w" : "b"]}
                 color={topColor}
+                themeId={theme.id}
                 clock={clocks[topColor === "white" ? "w" : "b"]}
                 active={derived.turn === topColor && !over}
               />
               <div className="board-shell">
                 <Board
                   board={derived.board}
+                  themeId={theme.id}
                   orientation={orientation}
                   selected={selected}
                   targets={targets}
@@ -695,6 +723,8 @@ export default function GameApp() {
                   hint={hint}
                   checkSquare={derived.checkSquare}
                   interactive={humanToMove}
+                  moveTick={derived.history.length}
+                  boom={boom}
                   onSquare={onSquare}
                 />
                 {over && (
@@ -729,7 +759,7 @@ export default function GameApp() {
                             style={{ fontSize: 30, padding: "8px 16px" }}
                             onClick={() => choosePromotion(pc)}
                           >
-                            {GLYPH_WHITE[pc]}
+                            {charFor(theme.id, derived.turn === "white" ? "w" : "b", pc)}
                           </button>
                         ))}
                       </div>
@@ -740,6 +770,7 @@ export default function GameApp() {
               <PlayerStrip
                 cfg={players[botColor === "white" ? "w" : "b"]}
                 color={botColor}
+                themeId={theme.id}
                 clock={clocks[botColor === "white" ? "w" : "b"]}
                 active={derived.turn === botColor && !over}
               />
@@ -816,8 +847,6 @@ export default function GameApp() {
   );
 }
 
-const GLYPH_WHITE: Record<string, string> = { q: "♕", r: "♖", b: "♗", n: "♘" };
-
 function Row({ n, w, b }: { n: number; w?: string; b?: string }) {
   return (
     <>
@@ -828,13 +857,25 @@ function Row({ n, w, b }: { n: number; w?: string; b?: string }) {
   );
 }
 
-function PlayerStrip({ cfg, color, clock, active }: { cfg: PlayerCfg; color: Color; clock: number; active: boolean }) {
+function PlayerStrip({
+  cfg,
+  color,
+  themeId,
+  clock,
+  active,
+}: {
+  cfg: PlayerCfg;
+  color: Color;
+  themeId: string;
+  clock: number;
+  active: boolean;
+}) {
   const low = isFinite(clock) && clock < 20000;
   return (
     <div className="player" data-active={active}>
       <div className="who">
         <div className="nm">
-          <span>{color === "white" ? "♔" : "♚"}</span>
+          <span>{charFor(themeId, color === "white" ? "w" : "b", "k")}</span>
           {cfg.name}
           <span className={`badge ${cfg.kind === "human" ? "human" : ""}`}>{cfg.kind === "ai" ? "AI" : "Human"}</span>
         </div>

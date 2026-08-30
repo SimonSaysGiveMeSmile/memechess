@@ -1,12 +1,13 @@
 "use client";
 
 import type { Color, PieceSymbol, Square } from "chess.js";
-import { GLYPHS } from "@/lib/pieces";
+import { charFor, pieceStyle } from "@/lib/pieces";
 
 type Cell = { square: Square; type: PieceSymbol; color: Color } | null;
 
 interface BoardProps {
   board: Cell[][];
+  themeId: string;
   orientation: "white" | "black";
   selected: Square | null;
   targets: Set<string>;
@@ -14,6 +15,10 @@ interface BoardProps {
   hint?: { from: string; to: string } | null;
   checkSquare: string | null;
   interactive: boolean;
+  /** increments every half-move — re-keys the destination piece so its slide replays */
+  moveTick: number;
+  /** transient capture burst at a square */
+  boom?: { square: string; char: string; tick: number } | null;
   onSquare: (sq: Square) => void;
 }
 
@@ -21,6 +26,7 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 export default function Board({
   board,
+  themeId,
   orientation,
   selected,
   targets,
@@ -28,16 +34,24 @@ export default function Board({
   hint,
   checkSquare,
   interactive,
+  moveTick,
+  boom,
   onSquare,
 }: BoardProps) {
-  // board()[0] is rank 8, file a..h. Flip both axes for black orientation.
   const rows = orientation === "white" ? board : [...board].reverse().map((r) => [...r].reverse());
+  const ps = pieceStyle(themeId);
+
+  // displayed grid coords for an algebraic square, honoring orientation
+  const displayed = (sq: string): { x: number; y: number } => {
+    const f = FILES.indexOf(sq[0]);
+    const rk = Number(sq[1]);
+    return orientation === "white" ? { x: f, y: 8 - rk } : { x: 7 - f, y: rk - 1 };
+  };
 
   return (
     <div className="board" role="grid" aria-label="chess board">
       {rows.map((row, r) =>
         row.map((cell, c) => {
-          // recover the true square name regardless of orientation
           const rank = orientation === "white" ? 8 - r : r + 1;
           const fileIdx = orientation === "white" ? c : 7 - c;
           const square = (FILES[fileIdx] + rank) as Square;
@@ -47,8 +61,22 @@ export default function Board({
           const isLast = lastMove && (lastMove.from === square || lastMove.to === square);
           const isHint = hint && (hint.from === square || hint.to === square);
           const isCheck = checkSquare === square;
-          const showFile = orientation === "white" ? r === 7 : r === 7;
-          const showRank = orientation === "white" ? c === 0 : c === 0;
+          const showFile = r === 7;
+          const showRank = c === 0;
+
+          // slide-in: the piece that just landed animates from its origin square
+          const isDest = !!cell && !!lastMove && lastMove.to === square;
+          let slideStyle: React.CSSProperties | undefined;
+          if (isDest && lastMove) {
+            const from = displayed(lastMove.from);
+            const to = displayed(lastMove.to);
+            slideStyle = {
+              ["--fx" as string]: `${(from.x - to.x) * 100}%`,
+              ["--fy" as string]: `${(from.y - to.y) * 100}%`,
+            };
+          }
+
+          const showBoom = boom && boom.square === square;
 
           return (
             <div
@@ -65,8 +93,20 @@ export default function Board({
               {showFile && <span className="coord f">{FILES[fileIdx]}</span>}
               {isTarget && (cell ? <span className="ring" /> : <span className="dot" />)}
               {cell && (
-                <span className={`piece ${cell.color}`} aria-label={`${cell.color} ${cell.type}`}>
-                  {GLYPHS[cell.color][cell.type]}
+                <span
+                  key={isDest ? `${square}-${moveTick}` : square}
+                  className={`piece ${cell.color}`}
+                  data-ps={ps}
+                  data-slide={isDest || undefined}
+                  style={slideStyle}
+                  aria-label={`${cell.color} ${cell.type}`}
+                >
+                  {charFor(themeId, cell.color, cell.type)}
+                </span>
+              )}
+              {showBoom && (
+                <span key={`boom-${boom.tick}`} className="boom" aria-hidden>
+                  {boom.char}
                 </span>
               )}
             </div>
