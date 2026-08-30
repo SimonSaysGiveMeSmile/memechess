@@ -6,7 +6,8 @@ The twist: everyone can play against *any* model they want, on a **time limit**,
 
 ## Features
 
-- **14 meme skins** — Grandmaster, `root@chess` terminal, Skibidi, 6‑7, Huh Cat, Italian Brainrot (Tralalero), Doge, GigaChad, Autobahn (car/racing), Vaporwave, Stonks, Labubu, Nyan, Noir Royale. Each skin re-paints the board, background, fonts **and the AI's trash-talk vocabulary**.
+- **14 meme skins** — Grandmaster, `root@chess` terminal, Skibidi, 6‑7, Huh Cat, Italian Brainrot (Tralalero), Doge, GigaChad, Autobahn (car/racing), Vaporwave, Stonks, Labubu, Nyan, Noir Royale. Each skin re-paints the board, background, fonts, piece treatment **and the AI's trash-talk vocabulary**. Shareable links: `/?skin=skibidi`.
+- **Generated SVG piece set** — a custom flat-Staunton silhouette set rendered as inline SVG (no emojis, no image files, nothing to 404), restyled per skin via CSS variables (fill/stroke/neon glow).
 - **Three modes**
   - **You vs AI** — pick your color, opponent model, and difficulty.
   - **Local 2‑player** — pass-and-play on one device.
@@ -22,7 +23,7 @@ The twist: everyone can play against *any* model they want, on a **time limit**,
 - **Next.js (App Router) + React + TypeScript**
 - `chess.js` for rules & state
 - One serverless route: `app/api/ai-move/route.ts` (Anthropic-compatible)
-- No image assets — pieces are Unicode glyphs, so nothing 404s
+- No image assets — pieces are a generated inline-SVG set (`components/PieceSvg.tsx`)
 
 ## Run locally
 

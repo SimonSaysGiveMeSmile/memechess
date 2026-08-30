@@ -1,13 +1,13 @@
 "use client";
 
 import type { Color, PieceSymbol, Square } from "chess.js";
-import { charFor, pieceStyle } from "@/lib/pieces";
+import PieceSvg from "./PieceSvg";
+import { PIECE_NAME } from "@/lib/pieces";
 
 type Cell = { square: Square; type: PieceSymbol; color: Color } | null;
 
 interface BoardProps {
   board: Cell[][];
-  themeId: string;
   orientation: "white" | "black";
   selected: Square | null;
   targets: Set<string>;
@@ -18,7 +18,7 @@ interface BoardProps {
   /** increments every half-move — re-keys the destination piece so its slide replays */
   moveTick: number;
   /** transient capture burst at a square */
-  boom?: { square: string; char: string; tick: number } | null;
+  boom?: { square: string; color: "w" | "b"; type: string; tick: number } | null;
   onSquare: (sq: Square) => void;
 }
 
@@ -26,7 +26,6 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 export default function Board({
   board,
-  themeId,
   orientation,
   selected,
   targets,
@@ -39,7 +38,6 @@ export default function Board({
   onSquare,
 }: BoardProps) {
   const rows = orientation === "white" ? board : [...board].reverse().map((r) => [...r].reverse());
-  const ps = pieceStyle(themeId);
 
   // displayed grid coords for an algebraic square, honoring orientation
   const displayed = (sq: string): { x: number; y: number } => {
@@ -96,17 +94,16 @@ export default function Board({
                 <span
                   key={isDest ? `${square}-${moveTick}` : square}
                   className={`piece ${cell.color}`}
-                  data-ps={ps}
                   data-slide={isDest || undefined}
                   style={slideStyle}
-                  aria-label={`${cell.color} ${cell.type}`}
+                  aria-label={`${cell.color === "w" ? "white" : "black"} ${PIECE_NAME[cell.type]}`}
                 >
-                  {charFor(themeId, cell.color, cell.type)}
+                  <PieceSvg type={cell.type} color={cell.color} />
                 </span>
               )}
               {showBoom && (
                 <span key={`boom-${boom.tick}`} className="boom" aria-hidden>
-                  {boom.char}
+                  <PieceSvg type={boom.type} color={boom.color} />
                 </span>
               )}
             </div>

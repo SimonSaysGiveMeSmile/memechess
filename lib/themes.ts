@@ -1,24 +1,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  MemeChess skins. Each skin re-paints the board, background, accents, fonts,
-//  and — crucially — the *vocabulary* the UI and the AI use for trash talk.
-//  All identity is driven by CSS custom properties + a vocab/persona pack, so a
-//  skin is pure data. No image assets => nothing to 404.
+//  piece treatment (fill/stroke/glow on the generated SVG set), and the
+//  vocabulary the UI and the AI use. Pure data — no image assets, no emojis.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ThemeVocab {
-  greet: string; // shown on the setup screen
-  check: string; // when a king is in check
-  mate: string; // checkmate
-  win: string; // human/side wins
-  lose: string; // human/side loses
-  draw: string; // drawn game
-  thinking: string; // AI is thinking
+  greet: string;
+  check: string;
+  mate: string;
+  win: string;
+  lose: string;
+  draw: string;
+  thinking: string;
 }
 
 export interface Theme {
   id: string;
   name: string;
-  tag: string; // emoji badge
+  tag: string; // short monogram shown in the brand mark
   blurb: string;
   /** CSS custom properties applied to the app root when this skin is active. */
   vars: Record<string, string>;
@@ -27,15 +26,13 @@ export interface Theme {
   /** Persona injected into the AI prompt so its quips match the skin. */
   persona: string;
   vocab: ThemeVocab;
-  /** Emoji sprinkled around the arena for flavor. */
-  confetti: string[];
 }
 
 export const THEMES: Theme[] = [
   {
     id: "classic",
     name: "Grandmaster",
-    tag: "♟",
+    tag: "GM",
     blurb: "Ivory, walnut and quiet menace. For when the meme is discipline.",
     persona:
       "a composed, slightly smug classical grandmaster who speaks in refined, terse chess wisdom",
@@ -69,13 +66,12 @@ export const THEMES: Theme[] = [
       draw: "A drawn battle. Honor intact.",
       thinking: "Calculating lines…",
     },
-    confetti: ["♛", "♞", "♜"],
   },
   {
     id: "terminal",
     name: "root@chess",
-    tag: "▮",
-    blurb: "Green phosphor, scanlines, and the smell of a warm CRT. Hack the board.",
+    tag: ">_",
+    blurb: "Green phosphor, scanlines, and the smell of a warm CRT.",
     persona:
       "a deadpan hacker terminal that narrates moves like shell output and calls blunders 'segfaults'",
     vars: {
@@ -93,8 +89,9 @@ export const THEMES: Theme[] = [
       "--last": "rgba(57,255,20,0.28)",
       "--check": "#ff4d4d",
       "--piece-light": "#c9ffdd",
-      "--piece-dark": "#39ff14",
-      "--piece-stroke": "rgba(0,0,0,0.6)",
+      "--piece-dark": "#0d5c2c",
+      "--piece-stroke": "rgba(0,0,0,0.55)",
+      "--piece-glow": "rgba(57,255,20,0.5)",
       "--font-display": "'JetBrains Mono', monospace",
       "--board-shadow": "0 0 60px rgba(57,255,20,0.25)",
       "--grain": "0.09",
@@ -110,15 +107,14 @@ export const THEMES: Theme[] = [
       draw: "process hung — draw",
       thinking: "compiling threats…",
     },
-    confetti: ["01", "10", "$", "λ"],
   },
   {
     id: "skibidi",
-    name: "Skibidi Toilet",
-    tag: "🚽",
+    name: "Skibidi",
+    tag: "SK",
     blurb: "Peak brainrot. Loud gradients, zero chill, maximum aura.",
     persona:
-      "a chaotic gen-alpha brainrot commentator who yells 'skibidi', 'rizz', 'gyatt' and 'only in Ohio'",
+      "a chaotic gen-alpha brainrot commentator who says 'skibidi', 'rizz', 'aura' and 'only in Ohio'",
     vars: {
       "--bg": "#0b0016",
       "--bg2": "#1a0033",
@@ -134,8 +130,9 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,46,196,0.4)",
       "--check": "#ff2e2e",
       "--piece-light": "#ffffff",
-      "--piece-dark": "#160026",
+      "--piece-dark": "#1c0133",
       "--piece-stroke": "rgba(0,0,0,0.4)",
+      "--piece-glow": "rgba(0,229,255,0.45)",
       "--font-display": "'Bungee', sans-serif",
       "--board-shadow": "0 0 70px rgba(255,46,196,0.4)",
       "--grain": "0.05",
@@ -143,23 +140,22 @@ export const THEMES: Theme[] = [
     bgFx:
       "radial-gradient(circle at 20% 20%, rgba(0,229,255,0.25), transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,46,196,0.25), transparent 45%)",
     vocab: {
-      greet: "bro really thinks he has the rizz to beat me 💀",
-      check: "CHECK?? in Ohio?? 😭",
-      mate: "skibidi checkmate, you got no aura left",
-      win: "W rizz. sigma. you cooked 🔥",
-      lose: "L + ratio + fanum tax. get gyatt'd",
+      greet: "bro really thinks he has the rizz to beat me",
+      check: "CHECK?? in Ohio??",
+      mate: "skibidi checkmate. you got no aura left",
+      win: "W rizz. sigma. you cooked",
+      lose: "L plus ratio plus fanum tax",
       draw: "mid. so mid. draw fr fr",
       thinking: "cooking the most sigma move…",
     },
-    confetti: ["🚽", "💀", "🔥", "🗿", "🤫"],
   },
   {
     id: "six-seven",
     name: "6-7",
-    tag: "✌️",
+    tag: "67",
     blurb: "Six… seveeen. The number that means nothing and everything.",
     persona:
-      "an unhinged meme commentator obsessed with the number '6-7', randomly shouting '6-7!' at moments",
+      "an unhinged meme commentator obsessed with the number '6-7', randomly saying '6-7' at moments",
     vars: {
       "--bg": "#0a0d12",
       "--bg2": "#111827",
@@ -182,20 +178,19 @@ export const THEMES: Theme[] = [
       "--grain": "0.05",
     },
     vocab: {
-      greet: "how good are you at chess? …6-7 🤷",
-      check: "check!! 6-7!!",
+      greet: "how good are you at chess? …6-7",
+      check: "check. 6-7.",
       mate: "sixxx… seveeen. checkmate.",
-      win: "you win, that's a solid 6-7 outta 10",
+      win: "you win. that's a solid 6-7 outta 10",
       lose: "you lost. 6-7. it is what it is.",
       draw: "draw. 6? 7? nobody knows.",
       thinking: "thinking… 6… 7…",
     },
-    confetti: ["6️⃣", "7️⃣", "🤷", "🫱"],
   },
   {
     id: "huh-cat",
     name: "Huh Cat",
-    tag: "🐱",
+    tag: "HUH",
     blurb: "That one confused cat. Every blunder gets a 'huh?'.",
     persona:
       "a bewildered cat that reacts to every move with confused 'huh?' energy and mild sass",
@@ -214,14 +209,14 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,138,61,0.35)",
       "--check": "#ff4d4d",
       "--piece-light": "#fff4ea",
-      "--piece-dark": "#1c1210",
+      "--piece-dark": "#2b1a12",
       "--piece-stroke": "rgba(0,0,0,0.4)",
       "--font-display": "'Fredoka', sans-serif",
       "--board-shadow": "0 24px 70px -20px rgba(0,0,0,0.75)",
       "--grain": "0.06",
     },
     vocab: {
-      greet: "you wanna play chess? …huh? 🐱",
+      greet: "you wanna play chess? …huh?",
       check: "check?? huh???",
       mate: "checkmate. huh. hmph.",
       win: "you won. huh. impressive i guess.",
@@ -229,12 +224,11 @@ export const THEMES: Theme[] = [
       draw: "draw. huh. weird.",
       thinking: "huh… let me think…",
     },
-    confetti: ["🐱", "❓", "😾", "🐾"],
   },
   {
     id: "italian-brainrot",
     name: "Tralalero",
-    tag: "🦈",
+    tag: "TR",
     blurb: "Tralalero Tralala. Absurdist Italian AI-slop opera on 64 squares.",
     persona:
       "an absurd Italian brainrot narrator who speaks in mock-Italian nonsense like 'Tralalero Tralala' and 'Bombardiro'",
@@ -253,27 +247,26 @@ export const THEMES: Theme[] = [
       "--last": "rgba(0,224,192,0.32)",
       "--check": "#ff5a3c",
       "--piece-light": "#f0ffff",
-      "--piece-dark": "#062230",
+      "--piece-dark": "#043243",
       "--piece-stroke": "rgba(0,0,0,0.4)",
       "--font-display": "'Fredoka', sans-serif",
       "--board-shadow": "0 26px 74px -20px rgba(0,0,0,0.8)",
       "--grain": "0.05",
     },
     vocab: {
-      greet: "Tralalero tralala! Benvenuto alla scacchiera 🦈",
+      greet: "Tralalero tralala! Benvenuto alla scacchiera",
       check: "Bombardiro! Check!",
       mate: "Tung tung tung — scacco matto!",
       win: "Bravo! Tralalero vittoria!",
-      lose: "Ohhh no… Brr brr patapim, you lose.",
+      lose: "Ohhh no… brr brr patapim, you lose.",
       draw: "Patta! Tralala nessuno vince.",
       thinking: "Pensando… tralalero…",
     },
-    confetti: ["🦈", "👟", "🐊", "🥥"],
   },
   {
     id: "doge",
     name: "Doge",
-    tag: "🐕",
+    tag: "WOW",
     blurb: "such chess. very strategy. wow. the original good boy.",
     persona:
       "a cheerful Shiba Inu doge who speaks in broken doge-speak: 'such move', 'very check', 'wow', 'much win'",
@@ -292,14 +285,14 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,210,61,0.35)",
       "--check": "#ff6b6b",
       "--piece-light": "#fff8e0",
-      "--piece-dark": "#12151f",
+      "--piece-dark": "#1a1e2e",
       "--piece-stroke": "rgba(0,0,0,0.4)",
       "--font-display": "'Comic Neue', 'Fredoka', sans-serif",
       "--board-shadow": "0 24px 70px -20px rgba(0,0,0,0.75)",
       "--grain": "0.05",
     },
     vocab: {
-      greet: "such chess. very board. wow. many strategy. 🐕",
+      greet: "such chess. very board. wow. many strategy.",
       check: "such check. very danger.",
       mate: "much checkmate. so win. wow.",
       win: "wow. such victory. very proud.",
@@ -307,12 +300,11 @@ export const THEMES: Theme[] = [
       draw: "very draw. such balance. wow.",
       thinking: "much think. very brain.",
     },
-    confetti: ["🐕", "✨", "🦴", "wow"],
   },
   {
     id: "gigachad",
     name: "GigaChad",
-    tag: "🗿",
+    tag: "GC",
     blurb: "Chiseled marble. Black & white. Every move is a jawline.",
     persona:
       "an ultra-confident GigaChad who speaks in short, alpha, gym-bro affirmations and calls weak moves 'beta'",
@@ -338,7 +330,7 @@ export const THEMES: Theme[] = [
       "--grain": "0.07",
     },
     vocab: {
-      greet: "You vs me. Only one of us has the jawline. 🗿",
+      greet: "You vs me. Only one of us has the jawline.",
       check: "Check. Stay hard.",
       mate: "Checkmate. Yes. This is a picture of me.",
       win: "You win. Respect. Barely.",
@@ -346,13 +338,12 @@ export const THEMES: Theme[] = [
       draw: "Draw. We are both chads today.",
       thinking: "Locked in…",
     },
-    confetti: ["🗿", "💪", "🌚", "⚡"],
   },
   {
     id: "autobahn",
     name: "Autobahn",
-    tag: "🏎️",
-    blurb: "Carbon fiber, redline tach, and German precision. Pieces are horsepower.",
+    tag: "AB",
+    blurb: "Carbon fiber, redline tach, and German precision.",
     persona:
       "a Formula-style pit-lane engineer who talks in racing telemetry, 'box box', 'DRS', and torque metaphors",
     vars: {
@@ -370,7 +361,7 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,45,45,0.32)",
       "--check": "#ffcc00",
       "--piece-light": "#f4f7fa",
-      "--piece-dark": "#101317",
+      "--piece-dark": "#15181d",
       "--piece-stroke": "rgba(0,0,0,0.5)",
       "--font-display": "'Rajdhani', sans-serif",
       "--board-shadow": "0 28px 78px -20px rgba(0,0,0,0.85)",
@@ -379,7 +370,7 @@ export const THEMES: Theme[] = [
     bgFx:
       "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 12px, transparent 12px 24px)",
     vocab: {
-      greet: "Lights out and away we go. 🏎️",
+      greet: "Lights out and away we go.",
       check: "Yellow flag — king under pressure.",
       mate: "Chequered flag. Checkmate.",
       win: "P1. You take the podium.",
@@ -387,13 +378,12 @@ export const THEMES: Theme[] = [
       draw: "Safety car. Draw.",
       thinking: "Box, box — recalculating…",
     },
-    confetti: ["🏎️", "🏁", "🔧", "⛽"],
   },
   {
     id: "vaporwave",
     name: "Vaporwave",
-    tag: "🌴",
-    blurb: "ＡＥＳＴＨＥＴＩＣ. Sunset grids, roman busts, and dial-up nostalgia.",
+    tag: "VW",
+    blurb: "Sunset grids, roman busts, and dial-up nostalgia.",
     persona:
       "a dreamy vaporwave aesthetic AI that speaks slowly in wide fullwidth text and 80s mall nostalgia",
     vars: {
@@ -411,8 +401,9 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,113,206,0.4)",
       "--check": "#ff4d6d",
       "--piece-light": "#fff0fb",
-      "--piece-dark": "#1a0736",
+      "--piece-dark": "#2d0a52",
       "--piece-stroke": "rgba(0,0,0,0.35)",
+      "--piece-glow": "rgba(255,113,206,0.55)",
       "--font-display": "'Monoton', cursive",
       "--board-shadow": "0 0 70px rgba(255,113,206,0.4)",
       "--grain": "0.05",
@@ -428,15 +419,14 @@ export const THEMES: Theme[] = [
       draw: "ｄ ｒ ａ ｗ",
       thinking: "ｌｏａｄｉｎｇ…",
     },
-    confetti: ["🌴", "🗿", "📼", "🌅"],
   },
   {
     id: "stonks",
     name: "Stonks",
-    tag: "📈",
+    tag: "STNK",
     blurb: "Green candles, red liquidations. Every capture is a market order.",
     persona:
-      "a hyped finance-bro trader who calls good moves 'bullish', blunders 'liquidations', and yells 'stonks'",
+      "a hyped finance-bro trader who calls good moves 'bullish', blunders 'liquidations', and says 'stonks'",
     vars: {
       "--bg": "#04120c",
       "--bg2": "#072416",
@@ -452,14 +442,15 @@ export const THEMES: Theme[] = [
       "--last": "rgba(0,230,118,0.3)",
       "--check": "#ff3b3b",
       "--piece-light": "#eafff4",
-      "--piece-dark": "#06331e",
+      "--piece-dark": "#0b5c36",
       "--piece-stroke": "rgba(0,0,0,0.55)",
+      "--piece-glow": "rgba(0,230,118,0.4)",
       "--font-display": "'Rajdhani', sans-serif",
       "--board-shadow": "0 0 60px rgba(0,230,118,0.25)",
       "--grain": "0.06",
     },
     vocab: {
-      greet: "Position opened. To the moon or to zero. 📈",
+      greet: "Position opened. To the moon or to zero.",
       check: "Margin call — king exposed.",
       mate: "Total liquidation. Checkmate.",
       win: "Bullish. You printed. Stonks.",
@@ -467,12 +458,11 @@ export const THEMES: Theme[] = [
       draw: "Sideways market. Draw.",
       thinking: "Reading the order book…",
     },
-    confetti: ["📈", "📉", "💸", "🚀"],
   },
   {
     id: "labubu",
     name: "Labubu",
-    tag: "🧸",
+    tag: "LB",
     blurb: "Pastel gremlin cute-core. Nine sharp teeth, one soft board.",
     persona:
       "an adorable-but-menacing pastel monster who is cute, giggly, and secretly ruthless",
@@ -491,7 +481,7 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,158,203,0.4)",
       "--check": "#ff6b9d",
       "--piece-light": "#fff5fb",
-      "--piece-dark": "#2a1f3a",
+      "--piece-dark": "#3a2652",
       "--piece-stroke": "rgba(0,0,0,0.3)",
       "--font-display": "'Fredoka', sans-serif",
       "--board-shadow": "0 24px 70px -20px rgba(0,0,0,0.6)",
@@ -500,21 +490,20 @@ export const THEMES: Theme[] = [
     bgFx:
       "radial-gradient(circle at 30% 25%, rgba(255,158,203,0.2), transparent 40%), radial-gradient(circle at 75% 75%, rgba(155,231,196,0.18), transparent 45%)",
     vocab: {
-      greet: "hehe~ wanna play? i promise i'm nice 🧸🔪",
-      check: "uwu check~",
-      mate: "checkmate! teehee 🧸",
+      greet: "hehe~ wanna play? i promise i'm nice",
+      check: "check~ hehe",
+      mate: "checkmate! teehee",
       win: "yaaay you win! so cute of you~",
-      lose: "aww you lose~ better luck bestie 💕",
-      draw: "a draw~ we're both winners <3",
+      lose: "aww you lose~ better luck bestie",
+      draw: "a draw~ we're both winners",
       thinking: "thinky thinky~",
     },
-    confetti: ["🧸", "💕", "🔪", "🌸"],
   },
   {
     id: "nyan",
     name: "Nyan",
-    tag: "🌈",
-    blurb: "Pop-tart cat trailing rainbows across the void. Pure serotonin.",
+    tag: "NYA",
+    blurb: "Pop-tart cat trailing rainbows across the void.",
     persona:
       "a hyperactive rainbow pop-tart cat that meows in rainbows and says 'nyan' a lot",
     vars: {
@@ -532,8 +521,9 @@ export const THEMES: Theme[] = [
       "--last": "rgba(255,94,199,0.4)",
       "--check": "#ff4d6d",
       "--piece-light": "#ffffff",
-      "--piece-dark": "#ff8a3d",
+      "--piece-dark": "#1c1c4a",
       "--piece-stroke": "rgba(0,0,0,0.5)",
+      "--piece-glow": "rgba(94,203,255,0.5)",
       "--font-display": "'Bungee', sans-serif",
       "--board-shadow": "0 0 70px rgba(255,94,199,0.35)",
       "--grain": "0.05",
@@ -541,20 +531,19 @@ export const THEMES: Theme[] = [
     bgFx:
       "radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(2px 2px at 70% 60%, #fff, transparent), radial-gradient(1px 1px at 45% 80%, #fff, transparent), radial-gradient(1px 1px at 85% 20%, #fff, transparent)",
     vocab: {
-      greet: "nyan nyan~ let's paint the board in rainbows! 🌈",
-      check: "nyan!! check!! 🌈",
-      mate: "nyaaan checkmate~ 🐱🌈",
+      greet: "nyan nyan~ let's paint the board in rainbows!",
+      check: "nyan!! check!!",
+      mate: "nyaaan checkmate~",
       win: "nyan~ you win! rainbows for you!",
-      lose: "aww nyan… you lose 😿",
+      lose: "aww nyan… you lose",
       draw: "nyan~ a rainbow draw!",
       thinking: "nyan-culating…",
     },
-    confetti: ["🌈", "🐱", "⭐", "🍞"],
   },
   {
     id: "royale",
     name: "Noir Royale",
-    tag: "👑",
+    tag: "NR",
     blurb: "Art-deco black lacquer and 24-karat gold. Old money, new checkmate.",
     persona:
       "a suave, aristocratic casino host who speaks in luxurious, velvet-smooth high-roller charm",
@@ -582,7 +571,7 @@ export const THEMES: Theme[] = [
     bgFx:
       "radial-gradient(circle at 50% 0%, rgba(229,183,59,0.12), transparent 55%)",
     vocab: {
-      greet: "Welcome to the Royale. The stakes are your dignity. 👑",
+      greet: "Welcome to the Royale. The stakes are your dignity.",
       check: "Check, monsieur.",
       mate: "Checkmate. The house always wins.",
       win: "A magnificent victory. Bravo.",
@@ -590,7 +579,6 @@ export const THEMES: Theme[] = [
       draw: "We split the pot. A draw.",
       thinking: "Consulting the odds…",
     },
-    confetti: ["👑", "♦", "🥂", "✨"],
   },
 ];
 

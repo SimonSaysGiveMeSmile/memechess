@@ -6,7 +6,7 @@ import Board from "./Board";
 import { THEMES, getTheme, type Theme } from "@/lib/themes";
 import { MODELS, SKILLS, DEFAULT_MODEL, modelLabel, type Skill } from "@/lib/models";
 import { requestAiMove } from "@/lib/ai";
-import { charFor } from "@/lib/pieces";
+import PieceSvg from "./PieceSvg";
 import { sfx } from "@/lib/sound";
 import {
   getUserId,
@@ -85,7 +85,7 @@ export default function GameApp() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [hint, setHint] = useState<{ from: string; to: string; san: string } | null>(null);
   const [hintBusy, setHintBusy] = useState(false);
-  const [boom, setBoom] = useState<{ square: string; char: string; tick: number } | null>(null);
+  const [boom, setBoom] = useState<{ square: string; color: "w" | "b"; type: string; tick: number } | null>(null);
   const [clocks, setClocks] = useState<{ w: number; b: number }>({ w: Infinity, b: Infinity });
   const [running, setRunning] = useState(false);
   const [over, setOver] = useState<{ result: Color | "draw"; reason: string } | null>(null);
@@ -107,8 +107,6 @@ export default function GameApp() {
   soundRef.current = sound;
   const tcRef = useRef(tc);
   tcRef.current = tc;
-  const themeIdRef = useRef(themeId);
-  themeIdRef.current = themeId;
 
   // ── mount: load persisted identity + prefs, then start playing right away ─
   useEffect(() => {
@@ -262,10 +260,11 @@ export default function GameApp() {
       setTargets(new Set());
       setHint(null);
       if (result.captured) {
-        // burst shows the victim in the current skin's piece set
+        // burst shows the victim piece evaporating
         setBoom({
           square: result.to,
-          char: charFor(themeIdRef.current, result.color === "w" ? "b" : "w", result.captured),
+          color: result.color === "w" ? "b" : "w",
+          type: result.captured,
           tick: c.history().length,
         });
         setTimeout(() => setBoom((b) => (b && b.tick === c.history().length ? null : b)), 650);
@@ -535,7 +534,9 @@ export default function GameApp() {
       <div className="wrap">
         <header className="topbar">
           <div className="brand">
-            <span className="mark">{theme.tag}</span>
+            <span className="mark">
+              <PieceSvg type="n" color="w" />
+            </span>
             <div>
               MemeChess
               <div className="byo">bring your own AI · model always disclosed</div>
@@ -551,7 +552,10 @@ export default function GameApp() {
               aria-label="Settings"
               onClick={() => setSettingsOpen((o) => !o)}
             >
-              ⚙
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z" />
+              </svg>
             </button>
           </div>
         </header>
@@ -563,7 +567,7 @@ export default function GameApp() {
               <div className="settings-hd">
                 <span>Settings</span>
                 <button className="x" onClick={() => setSettingsOpen(false)} aria-label="Close">
-                  ✕
+                  ×
                 </button>
               </div>
 
@@ -574,16 +578,17 @@ export default function GameApp() {
                     key={t.id}
                     className="skindot"
                     data-on={themeId === t.id}
-                    style={{ ["--sw-accent" as string]: t.vars["--accent"], background: t.vars["--dark"] }}
+                    style={{
+                      ["--sw-accent" as string]: t.vars["--accent"],
+                      background: `conic-gradient(${t.vars["--light"]} 0 90deg, ${t.vars["--dark"]} 90deg 180deg, ${t.vars["--light"]} 180deg 270deg, ${t.vars["--dark"]} 270deg)`,
+                    }}
                     title={`${t.name} — ${t.blurb}`}
                     onClick={() => setThemeId(t.id)}
-                  >
-                    {t.tag}
-                  </button>
+                  />
                 ))}
               </div>
               <div className="skinname">
-                {theme.name} · {charFor(theme.id, "w", "k")} vs {charFor(theme.id, "b", "k")} · {theme.blurb}
+                {theme.name} · {theme.blurb}
               </div>
 
               <div className="label">Mode</div>
@@ -601,7 +606,7 @@ export default function GameApp() {
                   <div className="seg">
                     {(["white", "black"] as Color[]).map((c) => (
                       <button key={c} data-on={humanColor === c} onClick={() => setHumanColor(c)}>
-                        {c === "white" ? "♔ White" : "♚ Black"}
+                        {c === "white" ? "White" : "Black"}
                       </button>
                     ))}
                   </div>
@@ -618,13 +623,13 @@ export default function GameApp() {
 
               {mode === "watch" && (
                 <>
-                  <div className="label">♔ White model</div>
+                  <div className="label">White model</div>
                   <select className="field" value={whiteModel} onChange={(e) => setWhiteModel(e.target.value)}>
                     {MODELS.map((m) => (
                       <option key={m.id} value={m.id}>{m.label}</option>
                     ))}
                   </select>
-                  <div className="label">♚ Black model</div>
+                  <div className="label">Black model</div>
                   <select className="field" value={blackModel} onChange={(e) => setBlackModel(e.target.value)}>
                     {MODELS.map((m) => (
                       <option key={m.id} value={m.id}>{m.label}</option>
@@ -708,14 +713,12 @@ export default function GameApp() {
               <PlayerStrip
                 cfg={players[topColor === "white" ? "w" : "b"]}
                 color={topColor}
-                themeId={theme.id}
                 clock={clocks[topColor === "white" ? "w" : "b"]}
                 active={derived.turn === topColor && !over}
               />
               <div className="board-shell">
                 <Board
                   board={derived.board}
-                  themeId={theme.id}
                   orientation={orientation}
                   selected={selected}
                   targets={targets}
@@ -730,7 +733,11 @@ export default function GameApp() {
                 {over && (
                   <div className="overlay">
                     <div>
-                      <div style={{ fontSize: 40 }}>{theme.confetti[0]}</div>
+                      {over.result !== "draw" && (
+                        <span className="ovpiece">
+                          <PieceSvg type="k" color={over.result === "white" ? "w" : "b"} />
+                        </span>
+                      )}
                       <h3>{resultText}</h3>
                       <p>
                         {over.result === "draw" ? "Draw" : `${over.result === "white" ? "White" : "Black"} wins`}{" "}
@@ -755,11 +762,10 @@ export default function GameApp() {
                         {(["q", "r", "b", "n"] as const).map((pc) => (
                           <button
                             key={pc}
-                            className="btn"
-                            style={{ fontSize: 30, padding: "8px 16px" }}
+                            className="btn promo"
                             onClick={() => choosePromotion(pc)}
                           >
-                            {charFor(theme.id, derived.turn === "white" ? "w" : "b", pc)}
+                            <PieceSvg type={pc} color={derived.turn === "white" ? "w" : "b"} />
                           </button>
                         ))}
                       </div>
@@ -770,7 +776,6 @@ export default function GameApp() {
               <PlayerStrip
                 cfg={players[botColor === "white" ? "w" : "b"]}
                 color={botColor}
-                themeId={theme.id}
                 clock={clocks[botColor === "white" ? "w" : "b"]}
                 active={derived.turn === botColor && !over}
               />
@@ -791,18 +796,18 @@ export default function GameApp() {
                   disabled={!humanToMove || hintBusy}
                   title="AI assist — a model suggests your best move"
                 >
-                  ✨ Hint
+                  Hint
                 </button>
                 <button className="btn" onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}>
-                  ⟲ Flip
+                  Flip
                 </button>
                 {mode === "watch" ? (
                   <button className="btn" onClick={() => setRunning((r) => !r)}>
-                    {running ? "❚❚" : "▶"}
+                    {running ? "Pause" : "Play"}
                   </button>
                 ) : (
                   <button className="btn" onClick={resign} disabled={!!over}>
-                    ⚑ Resign
+                    Resign
                   </button>
                 )}
               </div>
@@ -842,7 +847,7 @@ export default function GameApp() {
           <span>Skin: {theme.name}</span>
         </footer>
       </div>
-      {toast && <div className="toast">⚠︎ {toast}</div>}
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }
@@ -860,13 +865,11 @@ function Row({ n, w, b }: { n: number; w?: string; b?: string }) {
 function PlayerStrip({
   cfg,
   color,
-  themeId,
   clock,
   active,
 }: {
   cfg: PlayerCfg;
   color: Color;
-  themeId: string;
   clock: number;
   active: boolean;
 }) {
@@ -875,7 +878,9 @@ function PlayerStrip({
     <div className="player" data-active={active}>
       <div className="who">
         <div className="nm">
-          <span>{charFor(themeId, color === "white" ? "w" : "b", "k")}</span>
+          <span className="kicon">
+            <PieceSvg type="k" color={color === "white" ? "w" : "b"} />
+          </span>
           {cfg.name}
           <span className={`badge ${cfg.kind === "human" ? "human" : ""}`}>{cfg.kind === "ai" ? "AI" : "Human"}</span>
         </div>

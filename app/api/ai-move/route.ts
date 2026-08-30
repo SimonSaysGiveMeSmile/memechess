@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
     `You MUST choose exactly one move from the provided legal-move list — copy it verbatim.`,
     `Respond with ONLY a compact JSON object and nothing else:`,
     `{"move":"<one SAN move copied from the list>","quip":"<max 12 words, in persona>"}`,
+    `Never use emojis anywhere in the quip — plain text only.`,
   ].join("\n");
 
   const user = [
