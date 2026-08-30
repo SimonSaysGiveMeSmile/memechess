@@ -817,6 +817,22 @@ select.field {
   color: var(--muted);
 }
 
+.assistrow {
+  display: flex;
+  gap: 8px;
+}
+.assistrow .btn {
+  flex: 0 0 auto;
+  padding: 11px 18px;
+  font-size: 13px;
+}
+.field.compact {
+  padding: 8px 11px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
 .controls {
   display: flex;
   gap: 8px;

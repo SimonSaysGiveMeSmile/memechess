@@ -13,6 +13,8 @@ export interface AiMoveRequest {
   timeoutMs: number;
   byoKey?: string; // player's own key, overrides server default
   byoBaseUrl?: string;
+  /** "assist" switches the server to a deeper, deterministic analysis prompt */
+  purpose?: "play" | "assist";
 }
 
 export interface AiMoveResponse {

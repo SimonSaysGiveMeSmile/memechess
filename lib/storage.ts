@@ -76,10 +76,17 @@ export interface Prefs {
   sound: boolean;
   byoKey: string; // player's own key (optional); stored locally only
   byoBaseUrl: string;
+  assistModel: string; // model powering the Hint feature (independent of opponent)
 }
 
 export function getPrefs(): Prefs {
-  const fallback: Prefs = { themeId: "classic", sound: true, byoKey: "", byoBaseUrl: "" };
+  const fallback: Prefs = {
+    themeId: "classic",
+    sound: true,
+    byoKey: "",
+    byoBaseUrl: "",
+    assistModel: "claude-sonnet-4-6",
+  };
   if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(PREFS_KEY);

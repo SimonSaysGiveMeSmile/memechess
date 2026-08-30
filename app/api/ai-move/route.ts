@@ -16,6 +16,7 @@ interface Body {
   skill: "chill" | "sharp" | "ruthless";
   persona: string;
   timeoutMs?: number;
+  purpose?: "play" | "assist";
 }
 
 const SKILL_HINT: Record<Body["skill"], string> = {
@@ -72,16 +73,31 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const system = [
-    `You are a chess engine playing the ${color} pieces in a game of standard chess.`,
-    `Your on-screen persona: ${persona}. Stay fully in character in the "quip" field.`,
-    SKILL_HINT[skill] ?? SKILL_HINT.sharp,
-    `You will receive the board as ASCII, the FEN, and the exact list of legal moves in SAN.`,
-    `You MUST choose exactly one move from the provided legal-move list — copy it verbatim.`,
-    `Respond with ONLY a compact JSON object and nothing else:`,
-    `{"move":"<one SAN move copied from the list>","quip":"<max 12 words, in persona>"}`,
-    `Never use emojis anywhere in the quip — plain text only.`,
-  ].join("\n");
+  const isAssist = body.purpose === "assist";
+
+  const system = isAssist
+    ? [
+        `You are a strong chess coach analyzing a position for the player of the ${color} pieces.`,
+        `You will receive the board as ASCII, the FEN, and the exact list of legal moves in SAN.`,
+        `Analyze methodically before answering:`,
+        `1. List every forcing move available: checks, captures, and direct threats.`,
+        `2. Check what the opponent threatens if ${color} does nothing — are any pieces hanging?`,
+        `3. Pick the 3 strongest candidate moves and compare them concretely (what does the opponent reply?).`,
+        `4. Choose the single best move. Never choose a move that hangs a piece for nothing.`,
+        `Write your analysis briefly (a few lines), then on the FINAL line output ONLY this JSON:`,
+        `{"move":"<one SAN move copied verbatim from the legal-move list>","quip":"<why it's best, max 12 words, plain text>"}`,
+        `Never use emojis anywhere in the quip.`,
+      ].join("\n")
+    : [
+        `You are a chess engine playing the ${color} pieces in a game of standard chess.`,
+        `Your on-screen persona: ${persona}. Stay fully in character in the "quip" field.`,
+        SKILL_HINT[skill] ?? SKILL_HINT.sharp,
+        `You will receive the board as ASCII, the FEN, and the exact list of legal moves in SAN.`,
+        `You MUST choose exactly one move from the provided legal-move list — copy it verbatim.`,
+        `Respond with ONLY a compact JSON object and nothing else:`,
+        `{"move":"<one SAN move copied from the list>","quip":"<max 12 words, in persona>"}`,
+        `Never use emojis anywhere in the quip — plain text only.`,
+      ].join("\n");
 
   const user = [
     `Move ${moveNumber}. You are ${color} to move.`,
@@ -111,8 +127,9 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 400,
-        temperature: skill === "ruthless" ? 0.2 : skill === "sharp" ? 0.5 : 0.8,
+        // assists get room to actually analyze; play moves stay snappy
+        max_tokens: isAssist ? 1000 : 400,
+        temperature: isAssist ? 0 : skill === "ruthless" ? 0.2 : skill === "sharp" ? 0.5 : 0.8,
         system,
         messages: [{ role: "user", content: user }],
       }),
@@ -133,13 +150,20 @@ export async function POST(req: NextRequest) {
     const text: string =
       data?.content?.map((c: { text?: string }) => c?.text || "").join("") ?? "";
 
+    // assist mode emits analysis prose before the JSON — take the LAST json object
     let parsed: { move?: string; quip?: string } = {};
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        parsed = JSON.parse(match[0]);
-      } catch {
-        /* fall through to fallback */
+    const matches = text.match(/\{[^{}]*\}/g);
+    if (matches) {
+      for (let i = matches.length - 1; i >= 0; i--) {
+        try {
+          const candidate = JSON.parse(matches[i]);
+          if (candidate && typeof candidate.move === "string") {
+            parsed = candidate;
+            break;
+          }
+        } catch {
+          /* try earlier match */
+        }
       }
     }
 

@@ -76,6 +76,7 @@ export default function GameApp() {
   const [byoKey, setByoKey] = useState("");
   const [byoBaseUrl, setByoBaseUrl] = useState("");
   const [sound, setSound] = useState(true);
+  const [assistModel, setAssistModel] = useState("claude-sonnet-4-6");
 
   // ── live game state ───────────────────────────────────────────────────────
   const [players, setPlayers] = useState<{ w: PlayerCfg; b: PlayerCfg } | null>(null);
@@ -124,6 +125,7 @@ export default function GameApp() {
     setSound(p.sound);
     setByoKey(p.byoKey);
     setByoBaseUrl(p.byoBaseUrl);
+    setAssistModel(p.assistModel || "claude-sonnet-4-6");
     // no setup screen — drop the user straight onto a live board
     beginGame({
       mode: "ai",
@@ -342,18 +344,18 @@ export default function GameApp() {
     const legal = c.moves();
     if (!legal.length) return;
     setHintBusy(true);
-    setQuip({ from: "Assist", text: "analyzing your position…", thinking: true });
+    setQuip({ from: `Assist · ${modelLabel(assistModel)}`, text: "analyzing your position…", thinking: true });
     requestAiMove({
       fen: c.fen(),
       ascii: c.ascii(),
       legalMoves: legal,
       color: humanSide,
       moveNumber: Math.floor(c.moveNumber()),
-      model: aiModel,
-      skill: "ruthless", // the coach always tries its best
-      persona:
-        "a concise, encouraging chess coach explaining in one short phrase why this move is strong",
-      timeoutMs: 20000,
+      model: assistModel,
+      skill: "ruthless",
+      persona: "a concise chess coach",
+      purpose: "assist", // deeper server-side analysis prompt, temperature 0
+      timeoutMs: 25000,
       byoKey: byoKey || undefined,
       byoBaseUrl: byoBaseUrl || undefined,
     })
@@ -381,7 +383,7 @@ export default function GameApp() {
       })
       .catch((e) => setToast(String(e)))
       .finally(() => setHintBusy(false));
-  }, [humanToMove, hintBusy, humanSide, aiModel, byoKey, byoBaseUrl]);
+  }, [humanToMove, hintBusy, humanSide, assistModel, byoKey, byoBaseUrl]);
 
   // dismiss toast
   useEffect(() => {
@@ -789,15 +791,28 @@ export default function GameApp() {
                 </div>
               </div>
 
-              <div className="controls">
-                <button
-                  className="btn"
-                  onClick={requestHint}
-                  disabled={!humanToMove || hintBusy}
-                  title="AI assist — a model suggests your best move"
-                >
-                  Hint
+              <div className="assistrow" title="AI assist — your chosen model analyzes the position and suggests a move">
+                <button className="btn primary" onClick={requestHint} disabled={!humanToMove || hintBusy}>
+                  {hintBusy ? "Analyzing…" : "Hint"}
                 </button>
+                <select
+                  className="field compact"
+                  value={assistModel}
+                  aria-label="Assist model"
+                  onChange={(e) => {
+                    setAssistModel(e.target.value);
+                    savePrefs({ assistModel: e.target.value });
+                  }}
+                >
+                  {MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="controls">
                 <button className="btn" onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}>
                   Flip
                 </button>
