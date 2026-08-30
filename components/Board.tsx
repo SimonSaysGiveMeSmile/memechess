@@ -11,6 +11,7 @@ interface BoardProps {
   selected: Square | null;
   targets: Set<string>;
   lastMove: { from: string; to: string } | null;
+  hint?: { from: string; to: string } | null;
   checkSquare: string | null;
   interactive: boolean;
   onSquare: (sq: Square) => void;
@@ -24,6 +25,7 @@ export default function Board({
   selected,
   targets,
   lastMove,
+  hint,
   checkSquare,
   interactive,
   onSquare,
@@ -43,6 +45,7 @@ export default function Board({
           const isTarget = targets.has(square);
           const isSel = selected === square;
           const isLast = lastMove && (lastMove.from === square || lastMove.to === square);
+          const isHint = hint && (hint.from === square || hint.to === square);
           const isCheck = checkSquare === square;
           const showFile = orientation === "white" ? r === 7 : r === 7;
           const showRank = orientation === "white" ? c === 0 : c === 0;
@@ -54,6 +57,7 @@ export default function Board({
               className={`sq ${isLight ? "lt" : "dk"} ${interactive ? "clickable" : ""}`}
               data-sel={isSel || undefined}
               data-last={isLast || undefined}
+              data-hint={isHint || undefined}
               data-check={isCheck || undefined}
               onClick={interactive ? () => onSquare(square) : undefined}
             >
