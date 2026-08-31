@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import Board from "./Board";
 import { THEMES, getTheme, type Theme } from "@/lib/themes";
-import { MODELS, SKILLS, DEFAULT_MODEL, modelLabel, type Skill } from "@/lib/models";
+import { MODELS, SKILLS, DEFAULT_MODEL, modelLabel, validModel, type Skill } from "@/lib/models";
 import { requestAiMove } from "@/lib/ai";
 import PieceSvg from "./PieceSvg";
 import { sfx } from "@/lib/sound";
@@ -125,7 +125,8 @@ export default function GameApp() {
     setSound(p.sound);
     setByoKey(p.byoKey);
     setByoBaseUrl(p.byoBaseUrl);
-    setAssistModel(p.assistModel || "claude-sonnet-4-6");
+    // sanitize stored ids — a model removed from the list falls back gracefully
+    setAssistModel(validModel(p.assistModel, "claude-sonnet-4-6"));
     // no setup screen — drop the user straight onto a live board
     beginGame({
       mode: "ai",

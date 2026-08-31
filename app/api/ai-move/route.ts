@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DEFAULT_MODEL } from "@/lib/models";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   const randomLegal = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+  const modelUsed = model || DEFAULT_MODEL; // track which model actually ran (may downgrade on 503)
 
   const baseUrl = (
     req.headers.get("x-user-base-url") ||
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       move: randomLegal,
       quip: "(no API key configured — playing a random legal move)",
-      model,
+      model: modelUsed,
       fallback: true,
     });
   }
@@ -112,37 +114,57 @@ export async function POST(req: NextRequest) {
     `Pick your move now.`,
   ].join("\n");
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(body.timeoutMs ?? 20000, 28000));
+  const FALLBACK_MODEL = "claude-haiku-4-5-20251001";
+  let finalModel = modelUsed; // may be downgraded mid-request
+  let providerError: string | undefined;
+
+  const callProvider = async (mdl: string, timeoutMs: number): Promise<Response> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(`${baseUrl}/v1/messages`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          authorization: `Bearer ${apiKey}`,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: mdl,
+          // assists get room to actually analyze; play moves stay snappy
+          max_tokens: isAssist ? 1000 : 400,
+          temperature: isAssist ? 0 : skill === "ruthless" ? 0.2 : skill === "sharp" ? 0.5 : 0.8,
+          system,
+          messages: [{ role: "user", content: user }],
+        }),
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
 
   try {
-    const resp = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        authorization: `Bearer ${apiKey}`,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        // assists get room to actually analyze; play moves stay snappy
-        max_tokens: isAssist ? 1000 : 400,
-        temperature: isAssist ? 0 : skill === "ruthless" ? 0.2 : skill === "sharp" ? 0.5 : 0.8,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
-    });
+    let resp = await callProvider(modelUsed, Math.min(body.timeoutMs ?? 20000, 28000));
+
+    // requested model unavailable (dead channel etc.) → retry once on the
+    // known-good default before ever degrading to a random move
+    if (!resp.ok && modelUsed !== FALLBACK_MODEL) {
+      const detail = await resp.text().catch(() => "");
+      providerError = `${modelUsed} failed (${resp.status}: ${detail.slice(0, 140)}) — downgraded to ${FALLBACK_MODEL}`;
+      finalModel = FALLBACK_MODEL;
+      resp = await callProvider(FALLBACK_MODEL, 15000);
+    }
 
     if (!resp.ok) {
       const detail = await resp.text().catch(() => "");
       return NextResponse.json({
         move: randomLegal,
         quip: "(model unreachable — random legal move)",
-        model,
+        model: finalModel,
         fallback: true,
-        error: `provider ${resp.status}: ${detail.slice(0, 200)}`,
+        error: providerError || `provider ${resp.status}`,
       });
     }
 
@@ -174,19 +196,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       move: chosen,
       quip: quip || "…",
-      model,
+      model: finalModel,
       fallback: legal === null,
+      error: providerError,
     });
   } catch (err) {
     const aborted = err instanceof Error && err.name === "AbortError";
     return NextResponse.json({
       move: randomLegal,
       quip: aborted ? "(ran out of time — random legal move)" : "(error — random legal move)",
-      model,
+      model: finalModel,
       fallback: true,
       error: err instanceof Error ? err.message : "unknown error",
     });
-  } finally {
-    clearTimeout(timeout);
   }
 }

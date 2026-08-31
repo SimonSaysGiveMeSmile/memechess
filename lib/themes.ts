@@ -23,6 +23,12 @@ export interface Theme {
   vars: Record<string, string>;
   /** Optional extra background layer painted behind everything. */
   bgFx?: string;
+  /** Visual modifiers to trigger specific atmospheric effects. */
+  mods?: {
+    glitch?: boolean;
+    scanlines?: boolean;
+    floaty?: boolean;
+  };
   /** Persona injected into the AI prompt so its quips match the skin. */
   persona: string;
   vocab: ThemeVocab;
