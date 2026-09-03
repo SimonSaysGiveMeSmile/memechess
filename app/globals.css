@@ -127,12 +127,19 @@ button {
   height: 26px;
   filter: none;
 }
-.brand .mark .pcs .body {
+.brand .mark .pcs .ol path,
+.brand .mark .pcs .body path {
   fill: var(--bg);
-  stroke: none;
+  stroke: var(--bg);
 }
-.brand .mark .pcs .detail {
+.brand .mark .pcs .sheen {
+  display: none;
+}
+.brand .mark .pcs .detail path {
   stroke: var(--accent);
+}
+.brand .mark .pcs .detail circle {
+  fill: var(--accent);
 }
 .brand .byo {
   font-family: var(--font-mono);
@@ -379,7 +386,7 @@ select.field {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   border: 1px solid var(--panel-border);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 80%, transparent);
@@ -406,6 +413,34 @@ select.field {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.player .taken {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 15px;
+  margin-top: 1px;
+}
+.player .taken .tk {
+  width: 16px;
+  height: 16px;
+  margin-right: -5px;
+}
+.player .taken .tk .pcs {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+/* same-type captures overlap into a stack; a gap opens between types */
+.player .taken .tk + .tk[data-type]:not([data-type=""]) {
+  margin-left: 0;
+}
+.player .taken .lead {
+  margin-left: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 .player .clock {
   margin-left: auto;
@@ -446,21 +481,75 @@ select.field {
   position: relative;
   width: 100%;
   border-radius: 18px;
-  padding: 10px;
-  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  padding: 8px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--panel) 70%, white 4%), color-mix(in srgb, var(--panel) 80%, black 20%)),
+    var(--panel);
   border: 1px solid var(--panel-border);
-  box-shadow: var(--board-shadow);
+  box-shadow: var(--board-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* frame: rank labels down the left gutter, file labels along the bottom */
+.board-frame {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 18px;
+  grid-template-rows: 18px minmax(0, 1fr) 18px;
+  width: 100%;
+}
+.board-frame .ranks,
+.board-frame .files {
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.8;
+  user-select: none;
+}
+.board-frame .ranks {
+  grid-column: 1;
+  grid-row: 2;
+  flex-direction: column;
+  padding-right: 4px;
+}
+.board-frame .files {
+  grid-column: 2;
+  grid-row: 3;
+  padding-top: 3px;
+}
+.board-frame .ranks span,
+.board-frame .files span {
+  flex: 1;
+  display: grid;
+  place-items: center;
 }
 .board {
+  grid-column: 2;
+  grid-row: 2;
   position: relative;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   aspect-ratio: 1 / 1;
   width: 100%;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   touch-action: manipulation;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--dark) 70%, black 30%),
+    0 8px 24px -10px rgba(0, 0, 0, 0.7);
+}
+/* a soft vignette + inner bevel across the whole board, above the squares, below the pieces */
+.board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 48px rgba(0, 0, 0, 0.22);
 }
 .sq {
   position: relative;
@@ -469,11 +558,16 @@ select.field {
   user-select: none;
   transition: background 0.4s ease; /* smooth skin swaps */
 }
+/* squares get a faint diagonal sheen so they read as a surface, not a flat fill */
 .sq.lt {
-  background: var(--light);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 55%, rgba(0, 0, 0, 0.05)),
+    var(--light);
 }
 .sq.dk {
-  background: var(--dark);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 55%, rgba(0, 0, 0, 0.09)),
+    var(--dark);
 }
 .sq[data-last="true"]::after {
   content: "";
@@ -523,28 +617,6 @@ select.field {
     opacity: 0.35;
   }
 }
-.sq .coord {
-  position: absolute;
-  font-size: 9px;
-  font-weight: 700;
-  opacity: 0.55;
-  font-family: var(--font-mono);
-}
-.sq .coord.f {
-  bottom: 2px;
-  right: 4px;
-}
-.sq .coord.r {
-  top: 2px;
-  left: 4px;
-}
-.sq.lt .coord {
-  color: var(--dark);
-}
-.sq.dk .coord {
-  color: var(--light);
-}
-
 .piece {
   position: relative;
   z-index: 2;
@@ -557,34 +629,52 @@ select.field {
   will-change: transform;
 }
 
-/* the generated SVG set — one clean silhouette, restyled per skin */
+/* the generated SVG set — outline pass under a fill pass, sheen + line-work on top */
 .pcs {
-  width: 84%;
-  height: 84%;
+  width: 86%;
+  height: 86%;
   display: block;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 6px var(--piece-glow, transparent));
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 7px var(--piece-glow, transparent));
 }
-.pcs .body {
-  stroke-width: 1.1;
+.pcs .ol path {
+  stroke-width: 2.3;
   stroke-linejoin: round;
-}
-.pcs.w .body {
-  fill: var(--piece-light);
-  stroke: rgba(0, 0, 0, 0.45);
-}
-.pcs.b .body {
-  fill: var(--piece-dark);
-  stroke: rgba(255, 255, 255, 0.3);
-}
-.pcs .detail {
-  stroke-width: 1.4;
   stroke-linecap: round;
 }
-.pcs.w .detail {
-  stroke: rgba(0, 0, 0, 0.4);
+.pcs.w .ol path {
+  fill: var(--piece-outline-w, rgba(0, 0, 0, 0.5));
+  stroke: var(--piece-outline-w, rgba(0, 0, 0, 0.5));
 }
-.pcs.b .detail {
-  stroke: rgba(255, 255, 255, 0.35);
+.pcs.b .ol path {
+  fill: var(--piece-outline-b, rgba(255, 255, 255, 0.32));
+  stroke: var(--piece-outline-b, rgba(255, 255, 255, 0.32));
+}
+.pcs.w .body path {
+  fill: var(--piece-light);
+}
+.pcs.b .body path {
+  fill: var(--piece-dark);
+}
+.pcs .sheen {
+  opacity: var(--piece-sheen, 1);
+  mix-blend-mode: screen;
+}
+.pcs .detail path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.pcs.w .detail path {
+  stroke: rgba(0, 0, 0, 0.42);
+}
+.pcs.b .detail path {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+.pcs.w .detail circle {
+  fill: rgba(0, 0, 0, 0.6);
+}
+.pcs.b .detail circle {
+  fill: rgba(255, 255, 255, 0.6);
 }
 
 /* motion: the landing piece slides in from its origin square */
@@ -597,6 +687,25 @@ select.field {
   }
   to {
     transform: translate(0, 0) scale(1);
+  }
+}
+
+/* new game: pieces drop onto the board in a wave */
+.piece[data-enter="true"] {
+  animation: enter 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes enter {
+  from {
+    transform: translateY(-40%) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
 
@@ -681,8 +790,8 @@ select.field {
 /* result overlay */
 .overlay {
   position: absolute;
-  inset: 10px;
-  border-radius: 10px;
+  inset: 8px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -925,6 +1034,23 @@ select.field {
 }
 .settings-hd .x:hover {
   color: var(--text);
+}
+@media (max-width: 520px) {
+  .brand .byo {
+    display: none;
+  }
+  .board-shell {
+    padding: 4px;
+    border-radius: 14px;
+  }
+  .board-frame {
+    grid-template-columns: 15px minmax(0, 1fr) 15px;
+    grid-template-rows: 15px minmax(0, 1fr) 15px;
+  }
+  .board-frame .ranks,
+  .board-frame .files {
+    font-size: 9px;
+  }
 }
 @media (max-width: 720px) {
   /* mobile: full-width dropdown under the topbar */

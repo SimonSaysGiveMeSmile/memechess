@@ -93,6 +93,7 @@ export default function GameApp() {
   const [quip, setQuip] = useState<{ from: string; text: string; thinking: boolean } | null>(null);
   const [pending, setPending] = useState<{ from: Square; to: Square } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [gameTick, setGameTick] = useState(0);
 
   const theme = getTheme(themeId);
   const clockRef = useRef(clocks);
@@ -152,7 +153,23 @@ export default function GameApp() {
         for (const cell of row)
           if (cell && cell.type === "k" && cell.color === kc) checkSquare = cell.square;
     }
-    return { board, turn, checkSquare, history: chess.history() };
+    // captured material: whatever is missing from each side's starting set
+    const START: Record<string, number> = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+    const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    const onBoard = { w: { ...START }, b: { ...START } };
+    for (const row of board)
+      for (const cell of row)
+        if (cell && cell.type !== "k") onBoard[cell.color][cell.type] -= 1;
+    const missing = (c: "w" | "b") => {
+      const out: string[] = [];
+      for (const t of ["q", "r", "b", "n", "p"]) for (let i = 0; i < Math.max(0, onBoard[c][t]); i++) out.push(t);
+      return out;
+    };
+    // captured.w = black pieces White has taken, and vice versa
+    const captured = { w: missing("b"), b: missing("w") };
+    const score = (list: string[]) => list.reduce((n, t) => n + VALUE[t], 0);
+    const material = score(captured.w) - score(captured.b); // >0 → White ahead
+    return { board, turn, checkSquare, history: chess.history(), captured, material };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chess, force, over, lastMove]);
 
@@ -482,6 +499,7 @@ export default function GameApp() {
     setQuip(null);
     setPending(null);
     aiBusy.current = false;
+    setGameTick((t) => t + 1);
     setRunning(true);
     rerender();
   }
@@ -718,6 +736,8 @@ export default function GameApp() {
                 color={topColor}
                 clock={clocks[topColor === "white" ? "w" : "b"]}
                 active={derived.turn === topColor && !over}
+                captured={derived.captured[topColor === "white" ? "w" : "b"]}
+                lead={topColor === "white" ? derived.material : -derived.material}
               />
               <div className="board-shell">
                 <Board
@@ -730,6 +750,7 @@ export default function GameApp() {
                   checkSquare={derived.checkSquare}
                   interactive={humanToMove}
                   moveTick={derived.history.length}
+                  gameTick={gameTick}
                   boom={boom}
                   onSquare={onSquare}
                 />
@@ -781,6 +802,8 @@ export default function GameApp() {
                 color={botColor}
                 clock={clocks[botColor === "white" ? "w" : "b"]}
                 active={derived.turn === botColor && !over}
+                captured={derived.captured[botColor === "white" ? "w" : "b"]}
+                lead={botColor === "white" ? derived.material : -derived.material}
               />
             </div>
 
@@ -831,7 +854,9 @@ export default function GameApp() {
               <div className="moves">
                 <div className="hd">Moves</div>
                 <div className="movelist">
-                  {derived.history.length === 0 && <div className="empty">No moves yet — you're White. Go!</div>}
+                  {derived.history.length === 0 && (
+                    <div className="empty">No moves yet — {derived.turn === "white" ? "White" : "Black"} to move.</div>
+                  )}
                   {Array.from({ length: Math.ceil(derived.history.length / 2) }).map((_, i) => (
                     <Row key={i} n={i + 1} w={derived.history[i * 2]} b={derived.history[i * 2 + 1]} />
                   ))}
@@ -883,13 +908,20 @@ function PlayerStrip({
   color,
   clock,
   active,
+  captured,
+  lead,
 }: {
   cfg: PlayerCfg;
   color: Color;
   clock: number;
   active: boolean;
+  /** piece types this player has captured (opponent's colour) */
+  captured: string[];
+  /** material lead in pawns; only shown when positive */
+  lead: number;
 }) {
   const low = isFinite(clock) && clock < 20000;
+  const victimColor = color === "white" ? "b" : "w";
   return (
     <div className="player" data-active={active}>
       <div className="who">
@@ -901,6 +933,14 @@ function PlayerStrip({
           <span className={`badge ${cfg.kind === "human" ? "human" : ""}`}>{cfg.kind === "ai" ? "AI" : "Human"}</span>
         </div>
         <div className="mdl">{cfg.kind === "ai" ? `model: ${modelLabel(cfg.model || "")}` : "local player"}</div>
+        <div className="taken" aria-label={captured.length ? `captured ${captured.length} pieces` : "no captures yet"}>
+          {captured.map((t, i) => (
+            <span key={`${t}${i}`} className="tk" data-type={t}>
+              <PieceSvg type={t} color={victimColor} />
+            </span>
+          ))}
+          {lead > 0 && <span className="lead">+{lead}</span>}
+        </div>
       </div>
       <div className="clock" data-low={low || undefined}>
         {isFinite(clock) ? fmtClock(clock) : "∞"}

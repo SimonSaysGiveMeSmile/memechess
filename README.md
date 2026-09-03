@@ -7,7 +7,9 @@ The twist: everyone can play against *any* model they want, on a **time limit**,
 ## Features
 
 - **14 meme skins** — Grandmaster, `root@chess` terminal, Skibidi, 6‑7, Huh Cat, Italian Brainrot (Tralalero), Doge, GigaChad, Autobahn (car/racing), Vaporwave, Stonks, Labubu, Nyan, Noir Royale. Each skin re-paints the board, background, fonts, piece treatment **and the AI's trash-talk vocabulary**. Shareable links: `/?skin=skibidi`.
-- **Generated SVG piece set** — a custom flat-Staunton silhouette set rendered as inline SVG (no emojis, no image files, nothing to 404), restyled per skin via CSS variables (fill/stroke/neon glow).
+- **Hand-drawn Staunton piece set** — a layered inline-SVG set (outline pass, fill pass, sheen, line-work) with real king/bishop/knight profiles, no emojis, no image files, nothing to 404. Restyled per skin via CSS variables (fill/outline/glow/sheen).
+- **Framed board** — rank/file coordinates in the frame gutter, surfaced squares with a soft vignette, capture bursts, check pulse, slide-in moves, and a staggered piece drop on every new game.
+- **Material tracking** — each player strip shows the pieces they've captured and their pawn-value lead.
 - **Three modes**
   - **You vs AI** — pick your color, opponent model, and difficulty.
   - **Local 2‑player** — pass-and-play on one device.
