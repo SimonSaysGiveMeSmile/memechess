@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./safe-area.css";
 
 export const metadata: Metadata = {
   title: "MemeChess — bring your own AI",
@@ -10,6 +11,20 @@ export const metadata: Metadata = {
     description: "Meme-skinned online chess. Bring your own AI. Model always disclosed.",
     type: "website",
   },
+  // Open full screen when added to a phone's home screen.
+  appleWebApp: {
+    capable: true,
+    title: "MemeChess",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: "/apple-touch-icon.png",
+  },
+  // Next only emits "mobile-web-app-capable"; iOS still reads the apple- name.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -17,6 +32,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

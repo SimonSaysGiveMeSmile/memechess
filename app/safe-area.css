@@ -1,0 +1,20 @@
+/* Home-screen launches draw under the status bar and home indicator
+   (viewport-fit=cover + black-translucent), so keep the chrome clear of them.
+   Loaded after globals.css; insets are 0 in a normal browser tab. */
+.wrap {
+  padding-top: max(clamp(16px, 3vw, 34px), env(safe-area-inset-top));
+  padding-bottom: max(clamp(16px, 3vw, 34px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(16px, 3vw, 34px), env(safe-area-inset-left));
+  padding-right: max(clamp(16px, 3vw, 34px), env(safe-area-inset-right));
+}
+.settings {
+  top: calc(76px + env(safe-area-inset-top));
+}
+.toast {
+  bottom: calc(18px + env(safe-area-inset-bottom));
+}
+@media (max-width: 720px) {
+  .settings {
+    top: calc(64px + env(safe-area-inset-top));
+  }
+}
