@@ -2,14 +2,30 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./safe-area.css";
 
+const SITE_URL = "https://www.ichess.lol";
+const SITE_TITLE = "MemeChess — online chess, bring your own AI";
+const SITE_DESCRIPTION =
+  "Online chess with swappable meme skins and bring-your-own-AI opponents. The model each side plays is always disclosed. Built for web & mobile web.";
+
 export const metadata: Metadata = {
-  title: "MemeChess — bring your own AI",
-  description:
-    "Online chess with swappable meme skins and bring-your-own-AI opponents. The model each side plays is always disclosed. Built for web & mobile web.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: "MemeChess",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "MemeChess",
     description: "Meme-skinned online chess. Bring your own AI. Model always disclosed.",
     type: "website",
+    siteName: "MemeChess",
+    url: "/",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "A MemeChess game against an AI opponent" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MemeChess",
+    description: "Meme-skinned online chess. Bring your own AI. Model always disclosed.",
+    images: ["/og.png"],
   },
   // Open full screen when added to a phone's home screen.
   appleWebApp: {

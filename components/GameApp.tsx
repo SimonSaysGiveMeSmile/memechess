@@ -559,7 +559,7 @@ export default function GameApp() {
               <PieceSvg type="n" color="w" />
             </span>
             <div>
-              MemeChess
+              <h1 style={{ margin: 0, font: "inherit", display: "inline" }}>MemeChess</h1>
               <div className="byo">bring your own AI · model always disclosed</div>
             </div>
           </div>
