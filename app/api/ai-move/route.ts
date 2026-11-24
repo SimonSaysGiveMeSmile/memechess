@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DEFAULT_MODEL } from "@/lib/models";
+import { Chess } from "chess.js";
+import { DEFAULT_MODEL, validModel } from "@/lib/models";
+import { THEMES } from "@/lib/themes";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -42,6 +44,36 @@ function pickLegal(legal: string[], candidate: string | undefined): string | nul
   return null;
 }
 
+/** https only, no credentials, no localhost or IP-literal hosts. */
+function safeBaseUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw.trim());
+    const host = u.hostname.toLowerCase();
+    if (u.protocol !== "https:" || u.username || u.password) return null;
+    if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return null;
+    if (/^[\d.]+$/.test(host) || host.includes(":") || host.startsWith("[")) return null;
+    return u.origin + u.pathname;
+  } catch {
+    return null;
+  }
+}
+
+// Best-effort per-IP limit on server-key calls (per instance). Players with
+// their own key are not limited.
+const WINDOW_MS = 60_000;
+const MAX_PER_WINDOW = 20;
+const hits = new Map<string, number[]>();
+function rateLimited(req: NextRequest): boolean {
+  const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) hits.clear();
+  return recent.length > MAX_PER_WINDOW;
+}
+
 export async function POST(req: NextRequest) {
   let body: Body;
   try {
@@ -50,20 +82,49 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 
-  const { fen, ascii, legalMoves, color, moveNumber, model, skill, persona } = body;
-  if (!legalMoves?.length) {
+  // Rebuild the position on the server: the prompt only ever contains a real
+  // board, its legal moves and an allowlisted persona, so this route can't be
+  // used as a general-purpose LLM proxy.
+  let chess: Chess;
+  try {
+    if (typeof body.fen !== "string" || body.fen.length > 100) throw new Error("bad fen");
+    chess = new Chess(body.fen);
+  } catch {
+    return NextResponse.json({ error: "bad position" }, { status: 400 });
+  }
+  const fen = chess.fen();
+  const ascii = chess.ascii();
+  const legalMoves = chess.moves();
+  const color: Body["color"] = chess.turn() === "w" ? "white" : "black";
+  const moveNumber = chess.moveNumber();
+  const skill: Body["skill"] = body.skill in SKILL_HINT ? body.skill : "sharp";
+  const persona = THEMES.some((t) => t.persona === body.persona) ? body.persona : THEMES[0].persona;
+  if (!legalMoves.length) {
     return NextResponse.json({ error: "no legal moves" }, { status: 400 });
   }
 
   const randomLegal = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-  const modelUsed = model || DEFAULT_MODEL; // track which model actually ran (may downgrade on 503)
 
+  // A custom base URL is only honoured together with the player's own key.
+  // The server's key always goes to the server's configured provider and
+  // nowhere else.
+  const userKey = req.headers.get("x-user-key")?.trim() || "";
+  const userBaseUrl = userKey ? safeBaseUrl(req.headers.get("x-user-base-url")) : null;
+  if (userKey && req.headers.get("x-user-base-url") && !userBaseUrl) {
+    return NextResponse.json({ error: "base URL must be a public https URL" }, { status: 400 });
+  }
+  const usingServerKey = !userKey;
+  if (usingServerKey && rateLimited(req)) {
+    return NextResponse.json({ error: "too many requests" }, { status: 429 });
+  }
   const baseUrl = (
-    req.headers.get("x-user-base-url") ||
+    userBaseUrl ||
     process.env.ANTHROPIC_BASE_URL ||
     "https://api.anthropic.com"
   ).replace(/\/+$/, "");
-  const apiKey = req.headers.get("x-user-key") || process.env.ANTHROPIC_AUTH_TOKEN || "";
+  const apiKey = userKey || process.env.ANTHROPIC_AUTH_TOKEN || "";
+  // Only listed models; each request is billed to whoever's key it uses.
+  const modelUsed = validModel(body.model, DEFAULT_MODEL); // may downgrade on 503
 
   if (!apiKey) {
     // No key anywhere — degrade gracefully to a random-but-legal move so the game never stalls.
@@ -146,13 +207,15 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    let resp = await callProvider(modelUsed, Math.min(body.timeoutMs ?? 20000, 28000));
+    let resp = await callProvider(modelUsed, Math.min(Number(body.timeoutMs) || 20000, 28000));
 
     // requested model unavailable (dead channel etc.) → retry once on the
     // known-good default before ever degrading to a random move
     if (!resp.ok && modelUsed !== FALLBACK_MODEL) {
       const detail = await resp.text().catch(() => "");
-      providerError = `${modelUsed} failed (${resp.status}: ${detail.slice(0, 140)}) — downgraded to ${FALLBACK_MODEL}`;
+      providerError = usingServerKey
+        ? `${modelUsed} failed — downgraded to ${FALLBACK_MODEL}`
+        : `${modelUsed} failed (${resp.status}: ${detail.slice(0, 140)}) — downgraded to ${FALLBACK_MODEL}`;
       finalModel = FALLBACK_MODEL;
       resp = await callProvider(FALLBACK_MODEL, 15000);
     }
@@ -207,7 +270,7 @@ export async function POST(req: NextRequest) {
       quip: aborted ? "(ran out of time — random legal move)" : "(error — random legal move)",
       model: finalModel,
       fallback: true,
-      error: err instanceof Error ? err.message : "unknown error",
+      error: usingServerKey ? "provider error" : err instanceof Error ? err.message : "unknown error",
     });
   }
 }
