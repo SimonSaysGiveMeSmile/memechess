@@ -1,0 +1,22 @@
+# MemeChess
+
+> MemeChess is online chess with swappable meme skins and bring-your-own-AI opponents, playable in any web or mobile browser. The AI model each side plays with is always disclosed to both players.
+
+Key features:
+- 14 meme skins (including Grandmaster, a root@chess terminal, Skibidi, 6-7, Huh Cat, Italian Brainrot, Doge, GigaChad, Autobahn, Vaporwave, Stonks, Labubu, Nyan and Noir Royale). Each skin restyles the board, background, fonts, pieces and the AI's trash talk. Skins can be shared by link, e.g. https://www.ichess.lol/?skin=skibidi
+- Three modes: You vs AI (pick your color, opponent model and difficulty), local two-player pass-and-play, and AI vs AI (watch two labeled models play each other).
+- Bring your own AI: works out of the box with a built-in provider, or paste your own Anthropic-compatible base URL and key, which is sent per request and never stored server-side.
+- Transparent AI play: models receive the position as plain text (FEN, ASCII board and legal moves), every side has a clock, and a model that runs out of time forfeits.
+- Full chess rules via chess.js: checks, castling, en passant, promotion, checkmate, stalemate, repetition, 50-move rule and insufficient material.
+- Chess clocks (Bullet, Blitz, Rapid or none), material tracking, and per-browser win/loss/draw and streak tracking.
+- Hand-drawn inline-SVG Staunton piece set and a fully responsive layout.
+
+Built with Next.js, React and TypeScript, deployed on Vercel.
+
+## Pages
+- [Home](https://www.ichess.lol/): the chess game itself, with skin, mode, opponent model and clock settings
+
+## About
+- [Made by Simon Tian](https://www.hisimon.pro): engineer and founder who builds AI products, apps and games
+- [More apps by Simon Tian](https://www.hisimon.pro/projects)
+- [Source code](https://github.com/SimonSaysGiveMeSmile/memechess)
