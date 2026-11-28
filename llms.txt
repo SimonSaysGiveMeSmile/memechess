@@ -1,0 +1,24 @@
+# MemeChess
+
+> MemeChess is an open-source online chess game for web and mobile browsers where you play against AI opponents (Claude models or any Anthropic-compatible endpoint, including your own API key) with 14 swappable meme skins. The model each side uses is always disclosed, every side plays on a chess clock, and the board is sent to the model as plain text (FEN, ASCII board and legal SAN moves) with no vision pipeline.
+
+- What it is: a browser chess game with AI opponents and meme themes; modes are You vs AI, local two-player pass-and-play, and AI vs AI
+- Stack: Next.js (App Router), React, TypeScript, chess.js; one serverless route on Vercel (app/api/ai-move/route.ts)
+- Live site: https://www.ichess.lol (also https://memechess.vercel.app)
+- Run locally: npm install, then npm run dev (needs ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN in .env.local; see .env.local.example)
+
+## Docs
+
+- [README](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/README.md): features, skins, modes, house rules on disclosure and time limits, setup and deploy
+- [AI move route](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/app/api/ai-move/route.ts): the serverless endpoint that prompts the model with FEN, ASCII and legal moves and falls back to a random legal move
+- [Game shell](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/components/GameApp.tsx): modes, clocks, settings, bring-your-own-key panel and scores
+- [Skins](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/lib/themes.ts): the 14 meme skins and their AI trash-talk vocabularies
+- [Models](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/lib/models.ts): the selectable AI opponent models
+
+## Optional
+
+- [Board](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/components/Board.tsx): board rendering, coordinates and move animations
+- [Piece set](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/components/PieceSvg.tsx): the inline-SVG Staunton pieces
+- [Local stats](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/lib/storage.ts): per-browser player ID and win/loss/draw record
+- [Env example](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/.env.local.example): provider configuration
+- [Site llms.txt](https://github.com/SimonSaysGiveMeSmile/memechess/blob/master/public/llms.txt): the llms.txt served on the live site

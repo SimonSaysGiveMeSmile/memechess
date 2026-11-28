@@ -1,4 +1,10 @@
-# ♟ MemeChess
+# MemeChess
+
+MemeChess is an online chess game that lets you play in the browser against AI opponents (Claude or any Anthropic-compatible model) with swappable meme skins, for casual players who want a fun, transparent chess-vs-LLM experience on desktop or mobile web.
+
+![MemeChess chess board in the default Grandmaster skin, with the AI opponent's model name and chess clock shown above the board and the hint, flip, resign and move list panel on the right](docs/screenshot.jpg)
+
+Live demo: https://www.ichess.lol (also at https://memechess.vercel.app)
 
 Online chess with **swappable meme skins** and **bring-your-own-AI opponents** — built serverless for Vercel, playable on web and mobile web.
 
@@ -20,14 +26,14 @@ The twist: everyone can play against *any* model they want, on a **time limit**,
 - **Score tracking** — a stable per-browser player ID records your W/L/D, streak, and games.
 - **Clean, lightweight UI** — the board is the hero; chrome stays quiet. Fully responsive.
 
-## Tech
+## How it works / Tech stack
 
 - **Next.js (App Router) + React + TypeScript**
 - `chess.js` for rules & state
 - One serverless route: `app/api/ai-move/route.ts` (Anthropic-compatible)
 - No image assets — pieces are a generated inline-SVG set (`components/PieceSvg.tsx`)
 
-## Run locally
+## Getting started (run locally)
 
 ```bash
 npm install
@@ -43,6 +49,26 @@ ANTHROPIC_AUTH_TOKEN="sk-..."
 ```
 
 Players can override both from the in-game **Bring your own API key** panel.
+
+## Project structure
+
+```
+app/
+  page.tsx              # home page (the game) + JSON-LD
+  layout.tsx            # metadata, fonts, site URL
+  api/ai-move/route.ts  # serverless AI move endpoint (Anthropic-compatible)
+components/
+  GameApp.tsx           # game shell: modes, clocks, settings, scores
+  Board.tsx             # the chess board
+  PieceSvg.tsx          # inline-SVG Staunton piece set
+lib/
+  ai.ts                 # client call to /api/ai-move
+  models.ts             # selectable AI models
+  themes.ts             # the meme skins
+  storage.ts            # per-browser player ID and W/L/D stats
+  sound.ts, pieces.ts
+public/llms.txt         # site summary for LLMs
+```
 
 ## Deploy to Vercel
 
